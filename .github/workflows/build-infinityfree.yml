@@ -37,7 +37,7 @@ jobs:
           mkdir -p dist
           zip -qr dist/chargegrid-infinityfree.zip . \
             -x '.git/*' '.github/*' 'tests/*' 'node_modules/*' 'vendor/bin/*' \
-               '.env' '.env.*' '! .env.infinityfree.example' \
+               '.env' '.env.local' '.env.production' '.env.testing' \
                'Dockerfile' 'docker/*' 'render.yaml' 'dist/*' '.gitignore'
 
       - name: Upload package
