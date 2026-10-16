@@ -26,3 +26,12 @@ CREATE TABLE IF NOT EXISTS requests (
 
 -- Después de registrarte, convierte tu cuenta en administradora desde phpMyAdmin:
 -- UPDATE users SET is_admin = 1 WHERE email = 'TU_CORREO_DE_REGISTRO';
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+ email VARCHAR(190) NOT NULL,
+ ip_hash CHAR(64) NOT NULL,
+ attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+ last_attempt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY (email, ip_hash),
+ INDEX idx_login_attempts_time (last_attempt)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
