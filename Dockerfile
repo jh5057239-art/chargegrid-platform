@@ -11,7 +11,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 COPY . .
 
-RUN printf '%s\\n' \
+RUN printf '%s\n' \
     '<VirtualHost *:80>' \
     '    DocumentRoot /var/www/html/public' \
     '    <Directory /var/www/html/public>' \
