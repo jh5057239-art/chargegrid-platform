@@ -104,7 +104,9 @@ jobs:
       - name: Prepare writable Laravel directories
         run: |
           mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
-          find bootstrap/cache -maxdepth 1 -type f \\( -name 'config.php' -o -name 'events.php' -o -name 'routes-*.php' \\) -delete
+          find bootstrap/cache -maxdepth 1 -type f -name 'config.php' -delete
+          find bootstrap/cache -maxdepth 1 -type f -name 'events.php' -delete
+          find bootstrap/cache -maxdepth 1 -type f -name 'routes-*.php' -delete
           find storage/framework/cache storage/framework/sessions storage/framework/views storage/logs -type f -delete
 
       - name: Create upload ZIP
