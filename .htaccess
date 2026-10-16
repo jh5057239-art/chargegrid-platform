@@ -1,12 +1,10 @@
-# InfinityFree: keep Laravel source files outside the public URL space.
-Options -Indexes
-RewriteEngine On
+# InfinityFree serves htdocs as the document root; route Laravel through public/.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-# Do not rewrite requests that are already inside public/.
-RewriteRule ^public/ - [L]
+    # Map public-disk files without requiring symlinks.
+    RewriteRule ^storage/(.*)$ /storage/app/public/$1 [END]
 
-# Optional Laravel public-disk uploads (symlinks are not available on InfinityFree).
-RewriteRule ^storage/(.*)$ storage/app/public/$1 [L]
-
-# Serve all remaining requests through Laravel's public directory.
-RewriteRule ^(.*)$ public/$1 [L]
+    # Send all other requests to Laravel's public directory.
+    RewriteRule (.*) /public/$1 [L]
+</IfModule>
