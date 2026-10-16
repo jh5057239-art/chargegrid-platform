@@ -30,6 +30,7 @@ class AuthController extends Controller
             if (!$referrer) return back()->withErrors(['invite_code' => 'El código de invitación no es válido.'])->withInput($request->except('password','password_confirmation'));
         }
         unset($data['invite_code']);
+        $data['password'] = Hash::make($data['password']);
         $user = User::create($data + [
             'password' => Hash::make($request->password),
             'invite_code' => strtoupper(bin2hex(random_bytes(4))),
