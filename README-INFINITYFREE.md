@@ -1,44 +1,70 @@
-# Despliegue de ChargeGrid en InfinityFree
+# ChargeGrid en InfinityFree (prueba gratuita)
 
-Esta rama agrega los archivos de reescritura y una plantilla de entorno para probar ChargeGrid en alojamiento compartido InfinityFree. No cambia la rama `main` ni la configuración Docker de Render.
+Esta rama prepara una versión de ChargeGrid para alojamiento compartido InfinityFree. La rama `main` y su despliegue Docker de Render no se modifican.
 
-## Limitaciones importantes
+## Qué prepara el proyecto
 
-- InfinityFree no ofrece terminal SSH ni permite ejecutar Composer o `php artisan` en el servidor. Las dependencias de Laravel deben prepararse antes de subir el proyecto.
-- El repositorio no incluye `vendor/` ni `composer.lock`; subir únicamente el contenido de GitHub no basta para arrancar Laravel.
-- Debes usar MySQL/MariaDB creado desde el panel de InfinityFree; SQLite de Render no es apropiado para este despliegue.
-- Las migraciones y los datos de demostración deben prepararse fuera del servidor e importarse con phpMyAdmin. No hay que exponer una ruta web pública que ejecute migraciones.
-- El alojamiento gratuito tiene límites de archivos y recursos. Este despliegue es solo para pruebas, no para gestionar dinero real ni datos financieros sensibles.
+- Reglas `.htaccess` para servir Laravel desde la carpeta `public/` aunque InfinityFree mantenga `htdocs` como raíz web.
+- Dependencias PHP de producción mediante GitHub Actions.
+- Una clave de aplicación generada durante la compilación y una plantilla `.env.infinityfree` con los campos de base de datos pendientes.
+- Un volcado `database-infinityfree.sql` generado al ejecutar las migraciones y el seeder de estaciones de demostración.
+- Un ZIP `chargegrid-infinityfree.zip` listo para descargar como artefacto de la acción.
 
-## Archivos añadidos
+## Paso 1: descargar el paquete desde Android
 
-- `.htaccess` en la raíz: envía las solicitudes a `public/` y evita exponer directamente archivos internos.
-- `public/.htaccess`: reglas de rutas de Laravel.
-- `.env.infinityfree.example`: plantilla de variables para MySQL. Copia su contenido a un archivo llamado `.env` y completa los valores en tu entorno de hosting. Nunca subas el `.env` real a GitHub.
+1. Abre [la acción de compilación](https://github.com/jh5057239-art/chargegrid-platform/actions/workflows/build-infinityfree.yml).
+2. Abre la ejecución más reciente de la rama `infinityfree-deploy`.
+3. Confirma que terminó en verde. Si falla, abre el paso que falló y consulta el mensaje de error.
+4. En **Artifacts**, descarga `chargegrid-infinityfree`. Extrae el ZIP en tu teléfono con un gestor de archivos compatible.
 
-## Preparación requerida antes de subir
+La compilación se inicia automáticamente al actualizar esta rama. También puedes abrir la acción y pulsar **Run workflow**.
 
-En un entorno con PHP compatible y Composer, dentro de la carpeta del proyecto:
+## Paso 2: crear el hosting y MySQL
 
-1. Instala dependencias de producción: `composer install --no-dev --prefer-dist --no-interaction`.
-2. Genera una clave segura para la aplicación con `php artisan key:generate` en un entorno local configurado; no reutilices claves publicadas.
-3. Prepara las migraciones y un volcado SQL para la base MySQL. Revisa los datos de demostración antes de exportarlos.
-4. No incluyas `node_modules/`, archivos `.env`, claves, logs ni datos reales.
-5. Sube el proyecto completo preparado, incluida la carpeta `vendor/`, al directorio `htdocs` mediante el administrador de archivos o FTP.
+1. Regístrate en [InfinityFree](https://www.infinityfree.com/) y crea un sitio con su subdominio gratuito.
+2. Abre el panel de hosting y crea una base de datos MySQL.
+3. Copia el host MySQL, el nombre de base de datos, el usuario y la contraseña exactos que muestra InfinityFree. No supongas que el host es `localhost`.
 
-## Configuración en InfinityFree
+## Paso 3: configurar el archivo .env
 
-1. Crea una cuenta de hosting y un subdominio gratuito en [InfinityFree](https://www.infinityfree.com/).
-2. En el panel, crea una base de datos MySQL. Copia el host, nombre de base, usuario y contraseña exactos que muestra el panel; el host normalmente no es `localhost`.
-3. Copia `.env.infinityfree.example` a `.env` y configura `APP_KEY`, `APP_URL` y las variables `DB_*`. Usa `APP_DEBUG=false` en el sitio público.
-4. Importa el SQL preparado en phpMyAdmin.
-5. Sube los archivos preparados a `htdocs`. Mantén la estructura del proyecto: `app/`, `bootstrap/`, `config/`, `database/`, `public/`, `resources/`, `routes/`, `storage/`, `vendor/` y `artisan`.
-6. Comprueba primero la página principal. Si aparece HTTP 500, revisa la configuración PHP y los registros disponibles; no dejes `APP_DEBUG=true` en el sitio público.
+En el paquete viene un archivo llamado `.env.infinityfree`. Haz una copia llamada `.env` y edítala antes de subirla:
 
-## Almacenamiento público
+- `APP_URL`: coloca la URL HTTPS exacta de tu subdominio.
+- `DB_HOST`: host MySQL que indica el panel.
+- `DB_DATABASE`: nombre completo de la base creada.
+- `DB_USERNAME`: usuario MySQL.
+- `DB_PASSWORD`: contraseña MySQL.
 
-InfinityFree no admite enlaces simbólicos de Laravel. La regla de `.htaccess` raíz intenta servir archivos de `storage/app/public/` bajo la ruta `/storage/`. No guardes documentos privados ni pruebas de identidad en esa ubicación.
+No cambies `APP_KEY` ni compartas el archivo `.env`. Mantén `APP_DEBUG=false`.
 
-## Estado
+## Paso 4: importar las tablas
 
-Esta rama prepara la configuración de rutas y variables, pero no puede generar automáticamente `vendor/`, crear tu base de datos remota ni publicar el sitio en tu cuenta InfinityFree. Eso requiere preparar el paquete y configurar el panel de hosting.
+1. Abre phpMyAdmin desde el panel de InfinityFree.
+2. Selecciona la base de datos que creaste.
+3. Abre **Importar** y elige `database-infinityfree.sql` del ZIP.
+4. Ejecuta la importación y comprueba que se crearon las tablas.
+
+El volcado se genera desde las migraciones actuales y contiene estaciones de carga de demostración; no incluye usuarios reales ni saldos reales.
+
+## Paso 5: subir los archivos
+
+1. En el administrador de archivos o por FTP, abre `htdocs`.
+2. Sube el contenido del ZIP extraído, incluida la carpeta `vendor/`. No subas el ZIP como un único archivo esperando que el servidor lo ejecute.
+3. Sube el archivo `.env` que configuraste. Comprueba que el gestor de archivos muestra archivos ocultos.
+4. Conserva la estructura completa de Laravel: `app/`, `bootstrap/`, `config/`, `database/`, `public/`, `resources/`, `routes/`, `storage/`, `vendor/` y `artisan`.
+5. Abre la URL HTTPS de tu subdominio y prueba la página principal, registro e inicio de sesión.
+
+## Limitaciones y seguridad
+
+- El despliegue no se publica automáticamente en tu cuenta InfinityFree: la cuenta, el subdominio y la base de datos debes crearlos tú.
+- El paquete todavía requiere comprobarse en el hosting real; no declares el sitio operativo hasta probarlo.
+- InfinityFree no permite terminal SSH ni ejecutar `php artisan` en el servidor. Por eso se preparan las dependencias y el SQL antes de subir.
+- El alojamiento gratuito tiene límites de recursos y archivos. Esta configuración es para una demo visual, no para operar pagos, guardar dinero, procesar inversiones reales ni almacenar datos financieros sensibles.
+- No habilites `APP_DEBUG=true` en el sitio público y no publiques el archivo `.env`.
+- Si la compilación falla, el error puede indicar incompatibilidad de una migración o de una dependencia; corrige eso antes de importar.
+
+## Archivos clave
+
+- [Rama InfinityFree](https://github.com/jh5057239-art/chargegrid-platform/tree/infinityfree-deploy)
+- [Acción para generar el ZIP](https://github.com/jh5057239-art/chargegrid-platform/actions/workflows/build-infinityfree.yml)
+- [Archivo raíz .htaccess](https://github.com/jh5057239-art/chargegrid-platform/blob/infinityfree-deploy/.htaccess)
