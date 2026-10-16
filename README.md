@@ -1,26 +1,35 @@
-# ChargeGrid — PHP + MySQL
+# ChargeGrid — PHP + MySQL (demostración)
 
-Plataforma demostrativa en español, MXN, con interfaz adaptable a móvil y escritorio. Preparada para hosting compartido que soporte PHP y MySQL, incluyendo Hostinger e InfinityFree.
+Interfaz en español y MXN, adaptada a móviles y escritorio, para hosting compartido con PHP 8.1+ y MySQL/MariaDB (por ejemplo, Hostinger o InfinityFree, sujeto a las funciones habilitadas por el plan).
 
-## Incluye
+## Funciones incluidas
 - Registro e inicio de sesión con contraseñas cifradas.
 - Catálogo ilustrativo de estaciones de carga.
-- Panel de usuario, saldo de demostración y código de invitación.
-- Solicitudes de depósito/retiro de prueba con estados.
-- Panel administrativo para aprobar o rechazar solicitudes.
-- Protección CSRF, consultas preparadas y salida HTML escapada.
+- Panel de usuario, saldo de demostración y código de invitación validado.
+- Solicitudes internas de depósito/retiro de prueba.
+- Panel administrativo para aprobar o rechazar solicitudes de prueba.
+- Protección CSRF, consultas preparadas, salida HTML escapada y endurecimiento básico de sesión.
 
 ## Instalación
-1. En el hosting crea una base de datos MySQL y un usuario con permisos.
-2. Importa `schema.sql` desde phpMyAdmin.
-3. Copia `config.example.php` como `config.php` y completa host, base, usuario y contraseña.
-4. Sube los archivos a la carpeta pública del sitio (`public_html` en Hostinger o `htdocs` en InfinityFree).
-5. Abre el dominio y registra una cuenta.
-6. En phpMyAdmin ejecuta: `UPDATE users SET is_admin = 1 WHERE email = 'TU_CORREO_DE_REGISTRO';` reemplazando el correo por el tuyo.
+1. Crea una base MySQL y un usuario en el panel del hosting.
+2. Importa schema.sql desde phpMyAdmin.
+3. Copia config.example.php a config.php y rellena las credenciales reales del hosting. No subas ni publiques config.php en GitHub.
+4. Sube los archivos a la raíz pública del dominio (public_html o la carpeta indicada por tu hosting).
+5. Activa HTTPS en el hosting y abre el dominio.
+6. Registra tu cuenta usando una contraseña de al menos 12 caracteres.
+7. En phpMyAdmin, convierte tu cuenta en administradora ejecutando la consulta siguiente y reemplazando el correo por el tuyo:
+
+   UPDATE users SET is_admin = 1 WHERE email = 'TU_CORREO_DE_REGISTRO';
+
+8. Elimina config.example.php del servidor después de configurar el sistema. Conserva una copia de seguridad privada de la base de datos.
+
+## Límites importantes
+Este repositorio es una demostración funcional, NO una plataforma financiera lista para operar con dinero real. Los precios son ilustrativos; los depósitos/retiros son solicitudes internas y no mueven fondos. No hay pasarela de pago, transferencias, libro contable, verificación de identidad, controles antifraude, monitoreo ni auditoría independiente. No anuncies rendimientos ni recibas fondos reales con este código.
+
+Antes de cualquier uso público: auditoría de seguridad independiente, pruebas de integración en el hosting elegido, límites de intentos de acceso, recuperación de cuenta segura, registro de auditoría, copias de seguridad probadas, monitoreo y revisión legal/regulatoria aplicable.
 
 ## Seguridad
-- No compartas `config.php`, credenciales, contraseñas ni datos bancarios.
-- Elimina `config.example.php` del servidor después de configurar el proyecto.
-- Usa HTTPS.
-- Los depósitos y retiros son solamente solicitudes internas de demostración: no se realizan pagos ni transferencias.
-- El catálogo y los precios son ilustrativos. No hay inversiones ni rendimientos garantizados.
+- Usa HTTPS y credenciales únicas.
+- No compartas contraseñas ni datos bancarios.
+- Configura la base de datos con privilegios mínimos.
+- Los errores técnicos se registran en el log del servidor; nunca publiques credenciales.
