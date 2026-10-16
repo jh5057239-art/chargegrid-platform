@@ -32,7 +32,6 @@ class AuthController extends Controller
         unset($data['invite_code']);
         $data['password'] = Hash::make($data['password']);
         $user = User::create($data + [
-            'password' => Hash::make($request->password),
             'invite_code' => strtoupper(bin2hex(random_bytes(4))),
             'referred_by' => $referrer?->invite_code,
             'balance_mxn_cents' => 0,
