@@ -27,7 +27,7 @@
     </header>
     <section class="intro">
       <div><div class="eyebrow">MOVILIDAD · ENERGÍA · CONECTIVIDAD</div><h1>La energía que mueve<br>el siguiente paso.</h1><p>Consulta estaciones de carga y administra tu actividad desde un solo lugar.</p></div>
-      <a class="btn" href="#estaciones">⌕ &nbsp; Explorar estaciones</a>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="{{ route('register') }}">Crear cuenta</a><a class="btn light" href="{{ route('login') }}">Iniciar sesión</a></div>
     </section>
     <section class="grid" aria-label="Resumen">
       <article class="card metric-card"><div class="metric-icon">▣</div><div class="metric-copy"><div class="metric-head">Saldo de demostración</div><div class="metric">$0.00 <span style="font-size:13px;color:var(--muted)">MXN</span></div><div class="sub">Sin movimientos registrados</div></div></article>
