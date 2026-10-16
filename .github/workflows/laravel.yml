@@ -11,10 +11,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.3'
           extensions: mbstring, pdo_sqlite, sqlite3, dom, fileinfo
           coverage: none
-      - uses: ramsey/composer-install@v3
+          tools: composer:v2
+      - name: Resolve Composer dependencies
+        run: composer update --prefer-dist --no-interaction --no-progress
       - name: Prepare environment
         run: |
           cp .env.example .env
