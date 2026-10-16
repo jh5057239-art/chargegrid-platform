@@ -1,10 +1,10 @@
-# InfinityFree serves htdocs as the document root; route Laravel through public/.
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-
-    # Map public-disk files without requiring symlinks.
-    RewriteRule ^storage/(.*)$ /storage/app/public/$1 [END]
-
-    # Send all other requests to Laravel's public directory.
-    RewriteRule (.*) /public/$1 [L]
+Options -Indexes
+DirectoryIndex index.php
+<FilesMatch "^(config\.php|config\.example\.php|schema\.sql|README\.md)$">
+  Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
