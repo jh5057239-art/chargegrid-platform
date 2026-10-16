@@ -1,0 +1,48 @@
+name: Build InfinityFree upload package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, zip, bcmath, fileinfo
+          coverage: none
+          tools: composer:v2
+
+      - name: Install production dependencies
+        run: |
+          composer install --no-dev --prefer-dist --no-interaction --no-progress
+          composer dump-autoload --no-dev --no-interaction --no-scripts --optimize=false
+
+      - name: Prepare writable Laravel directories
+        run: |
+          mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+          find bootstrap/cache -type f ! -name '.gitignore' -delete
+          find storage/framework/cache storage/framework/sessions storage/framework/views storage/logs -type f -delete
+
+      - name: Create upload ZIP
+        run: |
+          mkdir -p dist
+          zip -qr dist/chargegrid-infinityfree.zip . \
+            -x '.git/*' '.github/*' 'tests/*' 'node_modules/*' 'vendor/bin/*' \
+               '.env' '.env.*' '! .env.infinityfree.example' \
+               'Dockerfile' 'docker/*' 'render.yaml' 'dist/*' '.gitignore'
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: chargegrid-infinityfree
+          path: dist/chargegrid-infinityfree.zip
+          if-no-files-found: error
