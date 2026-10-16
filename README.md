@@ -46,3 +46,16 @@ Esta versión no procesa pagos, no transfiere dinero, no ofrece rendimientos de 
 ## Seguridad
 
 No subas `.env`, contraseñas, tokens, claves privadas ni datos personales al repositorio. En producción establece `APP_DEBUG=false`, configura HTTPS y permisos correctos para `storage/` y `bootstrap/cache/`.
+
+
+## Desplegar una demo en Render desde el celular
+
+El repositorio incluye `render.yaml`, `Dockerfile` y un script de inicio para probar ChargeGrid en un servicio web de Render.
+
+1. Abre [Render](https://dashboard.render.com/) en el navegador de tu Android y crea una cuenta o inicia sesión con GitHub.
+2. En el panel, selecciona **New + → Blueprint**.
+3. Conecta GitHub y selecciona `jh5057239-art/chargegrid-platform`.
+4. Render leerá `render.yaml`. Revisa la configuración y selecciona **Apply** para iniciar el despliegue.
+5. Cuando el servicio indique **Live**, abre el dominio `onrender.com) que Render muestre en el panel.
+
+Esta configuración usa SQLite y está pensada únicamente para una demostración visual. En el plan gratuito el sistema de archivos no es persistente: los usuarios, solicitudes y datos de prueba pueden perderse al reiniciar o volver a desplegar. No uses contraseñas reales ni información personal. Los formularios financieros son de demostración y no procesan pagos.
