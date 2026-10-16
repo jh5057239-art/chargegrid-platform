@@ -1,5 +1,17 @@
 <?php
 declare(strict_types=1);
+// Cookie hardening. Secure cookies are enabled automatically when HTTPS is active.
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => $isHttps,
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
 session_start();
 require __DIR__ . '/config.php';
 
@@ -36,18 +48,31 @@ try {
         if ($action === 'register') {
             $name=trim((string)$_POST['name']); $email=strtolower(trim((string)$_POST['email']));
             $password=(string)$_POST['password']; $invite=trim((string)($_POST['invite'] ?? ''));
-            if (mb_strlen($name)<2 || !filter_var($email,FILTER_VALIDATE_EMAIL) || strlen($password)<8) throw new RuntimeException('Revisa tus datos. La contraseña debe tener al menos 8 caracteres.');
-            $ref = strtoupper(bin2hex(random_bytes(4)));
+            if (strlen($name)<2 || trim($name)==='' || !filter_var($email,FILTER_VALIDATE_EMAIL) || strlen($password)<12) throw new RuntimeException('Revisa tus datos. La contraseña debe tener al menos 12 caracteres.');
+            $existing=db()->prepare('SELECT id FROM users WHERE email=? LIMIT 1'); $existing->execute([$email]);
+            if ($existing->fetch()) throw new RuntimeException('Ya existe una cuenta con ese correo.');
+            if ($invite !== '') {
+                $inviter=db()->prepare('SELECT id FROM users WHERE ref_code=? LIMIT 1'); $inviter->execute([$invite]);
+                if (!$inviter->fetch()) throw new RuntimeException('El código de invitación no es válido.');
+            }
+            $ref = strtoupper(bin2hex(random_bytes(8)));
             $q=db()->prepare('INSERT INTO users(name,email,password,ref_code,referred_by) VALUES(?,?,?,?,?)');
             $q->execute([$name,$email,password_hash($password,PASSWORD_DEFAULT),$ref,$invite ?: null]);
-            $_SESSION['uid']=(int)db()->lastInsertId(); go('dashboard');
+            session_regenerate_id(true); $_SESSION['uid']=(int)db()->lastInsertId(); go('dashboard');
         }
         if ($action === 'login') {
             $q=db()->prepare('SELECT id,password FROM users WHERE email=?'); $q->execute([strtolower(trim((string)$_POST['email']))]); $u=$q->fetch();
             if (!$u || !password_verify((string)$_POST['password'],$u['password'])) throw new RuntimeException('Correo o contraseña incorrectos.');
             session_regenerate_id(true); $_SESSION['uid']=(int)$u['id']; go('dashboard');
         }
-        if ($action === 'logout') { session_destroy(); go('home'); }
+        if ($action === 'logout') {
+            $_SESSION = [];
+            if (ini_get('session.use_cookies')) {
+                $params = session_get_cookie_params();
+                setcookie(session_name(), '', ['expires'=>time()-42000,'path'=>$params['path'],'domain'=>$params['domain'],'secure'=>$params['secure'],'httponly'=>$params['httponly'],'samesite'=>'Lax']);
+            }
+            session_destroy(); go('home');
+        }
         $me=user(); if (!$me) go('login');
         if ($action === 'request') {
             $type=$_POST['type'] ?? ''; $amount=(float)($_POST['amount'] ?? 0); $reference=trim((string)($_POST['reference'] ?? ''));
@@ -72,7 +97,16 @@ try {
             $pdo->commit(); $notice='Solicitud actualizada.'; $page='admin';
         }
     }
-} catch (Throwable $ex) { $error = $ex instanceof PDOException ? 'No se pudo conectar con la base de datos. Revisa config.php y ejecuta schema.sql.' : $ex->getMessage(); }
+} catch (Throwable $ex) {
+    if ($ex instanceof PDOException) {
+        error_log('ChargeGrid database error: ' . $ex->getMessage());
+        $error = $ex->getCode() === '23000'
+            ? 'Ese correo ya está registrado o existe un dato duplicado.'
+            : 'Ocurrió un error de base de datos. Revisa la configuración y los registros del servidor.';
+    } else {
+        $error = $ex->getMessage();
+    }
+}
 $me = user();
 if ($page==='dashboard' && !$me) go('login');
 if ($page==='admin' && (!$me || (int)$me['is_admin']!==1)) go('dashboard');
@@ -93,7 +127,7 @@ if ($me) {
 <?php if($error):?><div class="alert err"><?=e($error)?></div><?php endif;?><?php if($notice):?><div class="alert"><?=e($notice)?></div><?php endif;?>
 <?php if($page==='home'):?><section class="hero"><div><div class="eyebrow">Infraestructura para un futuro eléctrico</div><h1>Movilidad eléctrica. Una red más inteligente.</h1><p>Explora soluciones de carga, conoce equipos y administra tus solicitudes desde una plataforma sencilla.</p><a class="btn light" href="?page=products">Explorar estaciones →</a></div><div class="hero-art">ϟ</div></section><div class="section-title"><div><div class="eyebrow" style="color:var(--green2)">Catálogo</div><h2>Estaciones destacadas</h2></div><a href="?page=products" class="muted">Ver catálogo →</a></div><div class="grid"><?php foreach($products as $p):?><article class="card"><div class="eyebrow" style="color:var(--green2)"><?=e($p['type'])?> · <?=e($p['power'])?></div><h3><?=e($p['name'])?></h3><p class="muted"><?=e($p['description'])?></p><div class="price">$<?=number_format($p['price'])?> <small>MXN</small></div><a class="btn ghost" href="?page=products">Ver detalles</a></article><?php endforeach;?></div><p class="disclaimer">ChargeGrid es una demostración de software. Los equipos, precios y operaciones son ilustrativos; no se procesan pagos ni se prometen rendimientos financieros.</p>
 <?php elseif($page==='products'):?><div class="section-title"><div><div class="eyebrow" style="color:var(--green2)">Catálogo de equipos</div><h2>Soluciones de carga</h2></div></div><div class="grid"><?php foreach($products as $p):?><article class="card"><div class="eyebrow" style="color:var(--green2)"><?=e($p['type'])?> · <?=e($p['power'])?></div><h3><?=e($p['name'])?></h3><p class="muted"><?=e($p['description'])?></p><div class="price">$<?=number_format($p['price'])?> MXN</div><a class="btn" href="?page=register">Crear cuenta</a></article><?php endforeach;?></div>
-<?php elseif($page==='login' || $page==='register'):?><section class="card formcard"><div class="brand"><span class="mark">ϟ</span><span>ChargeGrid</span></div><h2 style="margin-top:20px"><?= $page==='login'?'Bienvenido de nuevo':'Crea tu cuenta'?></h2><p class="muted"><?= $page==='login'?'Accede a tu panel de usuario.':'Regístrate para explorar la plataforma de demostración.'?></p><form method="post"><input type="hidden" name="csrf" value="<?=e(csrf())?>"><input type="hidden" name="action" value="<?= $page==='login'?'login':'register'?>"><?php if($page==='register'):?><label class="field">Nombre completo</label><input class="input" name="name" required minlength="2" autocomplete="name"><label class="field">Código de invitación (opcional)</label><input class="input" name="invite" autocomplete="off"><?php endif;?><label class="field">Correo electrónico</label><input class="input" type="email" name="email" required autocomplete="email"><label class="field">Contraseña</label><input class="input" type="password" name="password" required minlength="8" autocomplete="<?= $page==='login'?'current-password':'new-password'?>"><?php if($page==='register'):?><p class="muted" style="font-size:12px">Usa al menos 8 caracteres.</p><?php endif;?><button class="btn" style="width:100%;margin-top:12px" type="submit"><?= $page==='login'?'Iniciar sesión':'Crear cuenta'?></button></form><p class="muted"><?= $page==='login'?'¿No tienes cuenta?':'¿Ya tienes cuenta?'?> <a style="color:var(--green2);font-weight:700" href="?page=<?= $page==='login'?'register':'login'?>"><?= $page==='login'?'Regístrate':'Inicia sesión'?></a></p></section>
+<?php elseif($page==='login' || $page==='register'):?><section class="card formcard"><div class="brand"><span class="mark">ϟ</span><span>ChargeGrid</span></div><h2 style="margin-top:20px"><?= $page==='login'?'Bienvenido de nuevo':'Crea tu cuenta'?></h2><p class="muted"><?= $page==='login'?'Accede a tu panel de usuario.':'Regístrate para explorar la plataforma de demostración.'?></p><form method="post"><input type="hidden" name="csrf" value="<?=e(csrf())?>"><input type="hidden" name="action" value="<?= $page==='login'?'login':'register'?>"><?php if($page==='register'):?><label class="field">Nombre completo</label><input class="input" name="name" required minlength="2" autocomplete="name"><label class="field">Código de invitación (opcional)</label><input class="input" name="invite" autocomplete="off"><?php endif;?><label class="field">Correo electrónico</label><input class="input" type="email" name="email" required autocomplete="email"><label class="field">Contraseña</label><input class="input" type="password" name="password" required minlength="8" autocomplete="<?= $page==='login'?'current-password':'new-password'?>"><?php if($page==='register'):?><p class="muted" style="font-size:12px">Usa al menos 12 caracteres.</p><?php endif;?><button class="btn" style="width:100%;margin-top:12px" type="submit"><?= $page==='login'?'Iniciar sesión':'Crear cuenta'?></button></form><p class="muted"><?= $page==='login'?'¿No tienes cuenta?':'¿Ya tienes cuenta?'?> <a style="color:var(--green2);font-weight:700" href="?page=<?= $page==='login'?'register':'login'?>"><?= $page==='login'?'Regístrate':'Inicia sesión'?></a></p></section>
 <?php elseif($page==='dashboard' && $me):?><div class="section-title"><div><div class="eyebrow" style="color:var(--green2)">Panel personal</div><h2>Hola, <?=e($me['name'])?></h2><p class="muted">Resumen de tu cuenta ChargeGrid.</p></div></div><div class="grid"><section class="card"><div class="muted">Saldo de demostración</div><div class="stat">$<?=number_format((float)$me['balance'],2)?> MXN</div><small class="muted">No representa dinero real.</small></section><section class="card"><div class="muted">Tu código de invitación</div><div class="stat"><?=e($me['ref_code'])?></div><button class="btn ghost" onclick="navigator.clipboard.writeText('<?=e($me['ref_code'])?>')">Copiar código</button></section><section class="card"><div class="muted">Cuenta</div><div class="stat">Activa</div><small class="muted"><?=e($me['email'])?></small></section></div><div class="grid"><section class="card"><h3>Solicitar depósito de prueba</h3><p class="muted">Registra una solicitud para revisión administrativa. No subas datos bancarios reales.</p><form method="post"><input type="hidden" name="csrf" value="<?=e(csrf())?>"><input type="hidden" name="action" value="request"><input type="hidden" name="type" value="deposit"><label class="field">Monto (MXN)</label><input class="input" type="number" name="amount" min="50" max="100000" step="1" required><label class="field">Referencia de prueba (opcional)</label><input class="input" name="reference" maxlength="120"><button class="btn" style="margin-top:12px">Enviar solicitud</button></form></section><section class="card"><h3>Solicitar retiro de prueba</h3><p class="muted">El retiro solo se registra; la aprobación no implica una transferencia bancaria.</p><form method="post"><input type="hidden" name="csrf" value="<?=e(csrf())?>"><input type="hidden" name="action" value="request"><input type="hidden" name="type" value="withdraw"><label class="field">Monto (MXN)</label><input class="input" type="number" name="amount" min="50" max="100000" step="1" required><label class="field">Nota (opcional)</label><input class="input" name="reference" maxlength="120"><button class="btn" style="margin-top:12px">Enviar solicitud</button></form></section></div><div class="section-title"><h2>Mis solicitudes</h2></div><section class="card tablewrap"><table><thead><tr><th>Tipo</th><th>Monto</th><th>Estado</th><th>Fecha</th></tr></thead><tbody><?php foreach($requests as $r):?><tr><td><?= $r['type']==='deposit'?'Depósito de prueba':'Retiro de prueba'?></td><td>$<?=number_format((float)$r['amount'],2)?> MXN</td><td><span class="pill <?=e($r['status'])?>"><?=e($r['status'])?></span></td><td><?=e($r['created_at'])?></td></tr><?php endforeach;?><?php if(!$requests):?><tr><td colspan="4">Todavía no hay solicitudes.</td></tr><?php endif;?></tbody></table></section>
 <?php elseif($page==='admin' && $me && (int)$me['is_admin']===1):?><div class="section-title"><div><div class="eyebrow" style="color:var(--green2)">Control de plataforma</div><h2>Administración</h2></div></div><section class="card tablewrap"><h3>Solicitudes de usuarios</h3><table><thead><tr><th>Usuario</th><th>Tipo</th><th>Monto</th><th>Estado</th><th>Acción</th></tr></thead><tbody><?php foreach($requests as $r):?><tr><td><?=e($r['name'])?><br><small><?=e($r['email'])?></small></td><td><?=e($r['type'])?></td><td>$<?=number_format((float)$r['amount'],2)?></td><td><span class="pill <?=e($r['status'])?>"><?=e($r['status'])?></span></td><td><?php if($r['status']==='pending'):?><form method="post" style="display:flex;gap:5px"><input type="hidden" name="csrf" value="<?=e(csrf())?>"><input type="hidden" name="action" value="admin_decide"><input type="hidden" name="request_id" value="<?=(int)$r['id']?>"><button class="btn" name="decision" value="approve">Aprobar</button><button class="btn red" name="decision" value="reject">Rechazar</button></form><?php else:?>—<?php endif;?></td></tr><?php endforeach;?><?php if(!$requests):?><tr><td colspan="5">No hay solicitudes.</td></tr><?php endif;?></tbody></table></section><p class="disclaimer">Aprobaciones solo modifican el saldo interno de prueba. No existe integración de pagos reales.</p>
 <?php else:?><section class="card"><h2>Página no encontrada</h2><a class="btn" href="?">Volver al inicio</a></section><?php endif;?>
