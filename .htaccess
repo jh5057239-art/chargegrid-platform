@@ -1,10 +1,11 @@
-# InfinityFree serves htdocs as the document root; route Laravel through public/.
+# InfinityFree keeps htdocs as the document root. Keep Laravel's app files behind public/.
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Map public-disk files without requiring symlinks.
-    RewriteRule ^storage/(.*)$ /storage/app/public/$1 [END]
-
-    # Send all other requests to Laravel's public directory.
-    RewriteRule (.*) /public/$1 [L]
+    # Do not rewrite a request a second time after it has entered public/.
+    RewriteCond %{REQUEST_URI} !^/public/ [NC]
+    RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
+
+# Prevent directory listings and direct access to private project files if rewrite is unavailable.
+Options -Indexes
