@@ -1,30 +1,48 @@
 # ChargeGrid
 
-Plataforma web mobile-first para gestión de estaciones de carga de vehículos eléctricos, construida con PHP y Laravel.
+Plataforma Laravel en español para catálogo y administración de estaciones de carga de vehículos eléctricos. La interfaz usa MXN para mostrar precios de catálogo.
 
-## Módulos previstos
+## Requisitos
 
-- Autenticación y perfil de usuario.
-- Panel principal y navegación inferior con iconos.
-- Catálogo de estaciones y equipos de carga con precios y ciclos configurables.
-- Solicitudes de depósitos y retiros sujetas a revisión administrativa.
-- Referidos con reglas configurables.
-- Panel de administración para usuarios, catálogo y solicitudes.
+- PHP 8.2 o superior
+- Composer
+- SQLite para desarrollo; MySQL/MariaDB se puede configurar en `.env`
 
-## Estado actual
+## Instalación local
 
-Este repositorio se está inicializando. No es todavía una aplicación Laravel completa. Los saldos y operaciones deben tratarse como datos de demostración hasta implementar persistencia, controles de acceso, validación y auditoría. No se prometen rendimientos garantizados.
+```bash
+git clone https://github.com/jh5057239-art/chargegrid-platform.git
+cd chargegrid-platform
+composer install
+cp .env.example .env
+touch database/database.sqlite
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
+```
 
-## Requisitos previstos
+Abre `http://127.0.0.1:8000`. Para ejecutar Laravel completo necesitas PHP y Composer en tu entorno o un servidor compatible.
 
-- PHP y Composer compatibles con la versión de Laravel elegida.
-- MySQL/MariaDB o PostgreSQL.
-- Node.js y npm para compilar assets.
+## Cuenta administradora
 
-## Instalación
+1. Registra una cuenta desde `/register`.
+2. En el servidor, ejecuta `php artisan chargegrid:make-admin TU_TELEFONO` y confirma la operación.
+3. Cierra sesión y vuelve a entrar. El enlace de administración aparecerá en la barra inferior.
 
-Las instrucciones de instalación se añadirán cuando se haya incorporado el scaffold de Laravel y sus dependencias.
+No se incluye contraseña predeterminada de administrador.
+
+## Funciones iniciales
+
+- Registro e inicio de sesión con teléfono o correo, contraseña y protección CSRF.
+- Códigos de invitación generados al crear cuentas.
+- Catálogo de estaciones de demostración cargado por el seeder.
+- Solicitudes de depósito y retiro con revisión de estado.
+- Gestión básica del catálogo y listado de usuarios.
+
+## Límites importantes
+
+Esta versión no procesa pagos, no transfiere dinero, no ofrece rendimientos de inversión ni actualiza el saldo al aprobar una solicitud. Los precios del catálogo son datos de muestra. Antes de producción se requiere implementar pruebas, auditoría, controles antifraude, libro contable transaccional, recuperación de contraseña, protección de cargas de archivos y revisión legal/compliance.
 
 ## Seguridad
 
-No subas archivos `.env`, contraseñas, tokens, claves privadas ni datos personales al repositorio.
+No subas `.env`, contraseñas, tokens, claves privadas ni datos personales al repositorio. En producción establece `APP_DEBUG=false`, configura HTTPS y permisos correctos para `storage/` y `bootstrap/cache/`.
