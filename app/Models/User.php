@@ -10,12 +10,11 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'email', 'phone', 'password', 'invite_code', 'referred_by'];
-
+    protected $fillable = ['name', 'email', 'phone', 'password', 'invite_code', 'referred_by', 'balance_mxn_cents', 'is_admin'];
     protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
     {
-        return ['email_verified_at' => 'datetime', 'password' => 'hashed'];
+        return ['email_verified_at' => 'datetime', 'password' => 'hashed', 'is_admin' => 'boolean'];
     }
 }
