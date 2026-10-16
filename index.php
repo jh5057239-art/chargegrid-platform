@@ -61,8 +61,24 @@ try {
             session_regenerate_id(true); $_SESSION['uid']=(int)db()->lastInsertId(); go('dashboard');
         }
         if ($action === 'login') {
-            $q=db()->prepare('SELECT id,password FROM users WHERE email=?'); $q->execute([strtolower(trim((string)$_POST['email']))]); $u=$q->fetch();
-            if (!$u || !password_verify((string)$_POST['password'],$u['password'])) throw new RuntimeException('Correo o contraseña incorrectos.');
+            $email = strtolower(trim((string)($_POST['email'] ?? '')));
+            if (strlen($email) > 190 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('Correo o contraseña incorrectos.');
+            }
+            // Rate-limit by account and a one-way hash of the source IP.
+            $ipHash = hash_hmac('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'), DB_PASS);
+            $limit = db()->prepare('SELECT attempts,last_attempt FROM login_attempts WHERE email=? AND ip_hash=?');
+            $limit->execute([$email, $ipHash]);
+            $attempt = $limit->fetch();
+            if ($attempt && (int)$attempt['attempts'] >= 5 && strtotime((string)$attempt['last_attempt']) > time() - 900) {
+                throw new RuntimeException('Demasiados intentos. Espera 15 minutos antes de volver a intentarlo.');
+            }
+            $q=db()->prepare('SELECT id,password FROM users WHERE email=?'); $q->execute([$email]); $u=$q->fetch();
+            if (!$u || !password_verify((string)($_POST['password'] ?? ''),$u['password'])) {
+                db()->prepare("INSERT INTO login_attempts(email,ip_hash,attempts,last_attempt) VALUES(?,?,1,CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE attempts=IF(last_attempt < (CURRENT_TIMESTAMP - INTERVAL 15 MINUTE),1,attempts+1),last_attempt=CURRENT_TIMESTAMP")->execute([$email,$ipHash]);
+                throw new RuntimeException('Correo o contraseña incorrectos.');
+            }
+            db()->prepare('DELETE FROM login_attempts WHERE email=? AND ip_hash=?')->execute([$email,$ipHash]);
             session_regenerate_id(true); $_SESSION['uid']=(int)$u['id']; go('dashboard');
         }
         if ($action === 'logout') {
