@@ -20,9 +20,11 @@ RUN printf '%s\n' \
     '    </Directory>' \
     '    ErrorLog ${APACHE_LOG_DIR}/error.log' \
     '    CustomLog ${APACHE_LOG_DIR}/access.log combined' \
-    '</VirtualHost>' > /etc/apache2/sites-available/000-default.conf \
-    && composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader \
-    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    '</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+
+RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && touch database/database.sqlite \
     && chown -R www-data:www-data storage bootstrap/cache database \
     && chmod -R ug+rwx storage bootstrap/cache database
