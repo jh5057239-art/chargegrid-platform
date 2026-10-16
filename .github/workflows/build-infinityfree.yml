@@ -37,8 +37,11 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Install production dependencies
-        run: composer install --no-dev --prefer-dist --no-interaction --no-progress
+      - name: Resolve and install production dependencies
+        run: composer update --no-dev --prefer-dist --no-interaction --no-progress --no-scripts
+
+      - name: Generate production autoloader
+        run: composer dump-autoload --no-dev --optimize=false --no-interaction
 
       - name: Configure temporary environment and create app key
         run: |
@@ -67,7 +70,6 @@ jobs:
           DB_PASSWORD=REPLACE-WITH-DATABASE-PASSWORD
 
           SESSION_DRIVER=file
-          SESSION_LIFETIME=120
           CACHE_STORE=file
           QUEUE_CONNECTION=sync
           MAIL_MAILER=log
@@ -104,9 +106,7 @@ jobs:
       - name: Prepare writable Laravel directories
         run: |
           mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
-          find bootstrap/cache -maxdepth 1 -type f -name 'config.php' -delete
-          find bootstrap/cache -maxdepth 1 -type f -name 'events.php' -delete
-          find bootstrap/cache -maxdepth 1 -type f -name 'routes-*.php' -delete
+          find bootstrap/cache -maxdepth 1 -type f \( -name 'config.php' -o -name 'events.php' -o -name 'routes-*.php' \) -delete
           find storage/framework/cache storage/framework/sessions storage/framework/views storage/logs -type f -delete
 
       - name: Create upload ZIP
@@ -117,9 +117,18 @@ jobs:
                '.env' '.env.local' '.env.production' '.env.testing' \
                'Dockerfile' 'docker/*' 'render.yaml' 'dist/*' '.gitignore'
 
+      - name: Verify deployment package
+        run: |
+          unzip -t dist/chargegrid-infinityfree.zip
+          unzip -l dist/chargegrid-infinityfree.zip | grep -q 'vendor/autoload.php'
+          unzip -l dist/chargegrid-infinityfree.zip | grep -q 'database-infinityfree.sql'
+          unzip -l dist/chargegrid-infinityfree.zip | grep -q '.env.infinityfree'
+          unzip -l dist/chargegrid-infinityfree.zip | grep -q 'public/index.php'
+
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
           name: chargegrid-infinityfree
           path: dist/chargegrid-infinityfree.zip
           if-no-files-found: error
+          retention-days: 14
