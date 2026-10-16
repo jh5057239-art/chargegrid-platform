@@ -1,6 +1,8 @@
 name: Build InfinityFree upload package
 
 on:
+  push:
+    branches: [infinityfree-deploy]
   workflow_dispatch:
 
 permissions:
