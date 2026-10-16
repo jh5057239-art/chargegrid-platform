@@ -56,6 +56,6 @@ El repositorio incluye `render.yaml`, `Dockerfile` y un script de inicio para pr
 2. En el panel, selecciona **New + → Blueprint**.
 3. Conecta GitHub y selecciona `jh5057239-art/chargegrid-platform`.
 4. Render leerá `render.yaml`. Revisa la configuración y selecciona **Apply** para iniciar el despliegue.
-5. Cuando el servicio indique **Live**, abre el dominio `onrender.com) que Render muestre en el panel.
+5. Cuando el servicio indique **Live**, abre el dominio `*.onrender.com` que Render muestre en el panel.
 
 Esta configuración usa SQLite y está pensada únicamente para una demostración visual. En el plan gratuito el sistema de archivos no es persistente: los usuarios, solicitudes y datos de prueba pueden perderse al reiniciar o volver a desplegar. No uses contraseñas reales ni información personal. Los formularios financieros son de demostración y no procesan pagos.
