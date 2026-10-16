@@ -46,6 +46,18 @@ No cambies `APP_KEY` ni compartas el archivo `.env`. Mantén `APP_DEBUG=false`.
 
 El volcado se genera desde las migraciones actuales y contiene estaciones de carga de demostración; no incluye usuarios reales ni saldos reales.
 
+### Habilitar tu propia cuenta administradora (opcional)
+
+1. Primero registra tu cuenta desde la página web.
+2. En phpMyAdmin, abre la base de datos y la pestaña **SQL**.
+3. Ejecuta la siguiente consulta sustituyendo el correo por el correo exacto que registraste:
+
+   ```sql
+   UPDATE users SET is_admin = 1 WHERE email = 'TU_CORREO_DE_REGISTRO';
+   ```
+
+4. Cierra sesión y vuelve a iniciar sesión. No uses una contraseña predeterminada ni compartas tus credenciales.
+
 ## Paso 5: subir los archivos
 
 1. En el administrador de archivos o por FTP, abre `htdocs`.
