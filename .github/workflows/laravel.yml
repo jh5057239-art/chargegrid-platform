@@ -1,0 +1,28 @@
+name: Laravel checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_sqlite, sqlite3, dom, fileinfo
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          touch database/database.sqlite
+          php artisan key:generate
+      - name: Validate Composer manifest
+        run: composer validate --no-check-publish
+      - name: Run migrations and seed demo catalog
+        run: php artisan migrate --seed --force
+      - name: Run feature tests
+        run: php artisan test
